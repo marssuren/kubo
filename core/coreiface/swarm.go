@@ -43,9 +43,6 @@ type SwarmAPI interface {
 	// Disconnect from a given address
 	Disconnect(context.Context, ma.Multiaddr) error
 
-	DisconnectAll(context.Context) error
-	SetBlockAll(ctx context.Context, blockAll bool) error
-
 	// Peers returns the list of peers we are connected to
 	Peers(context.Context) ([]ConnectionInfo, error)
 

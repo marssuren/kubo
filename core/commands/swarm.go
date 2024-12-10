@@ -724,15 +724,6 @@ it will reconnect.
 			return err
 		}
 
-		switch req.Arguments[0] {
-		case "noblockAll":
-			return api.Swarm().SetBlockAll(req.Context, false)
-		case "blockAll":
-			return api.Swarm().SetBlockAll(req.Context, true)
-		case "all":
-			return api.Swarm().DisconnectAll(req.Context)
-		}
-
 		addrs, err := parseAddresses(req.Context, req.Arguments, node.DNSResolver)
 		if err != nil {
 			return err

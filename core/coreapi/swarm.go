@@ -2,12 +2,10 @@ package coreapi
 
 import (
 	"context"
-	"errors"
 	"sort"
 	"time"
 
 	coreiface "github.com/ipfs/kubo/core/coreiface"
-	"github.com/ipfs/kubo/core/node/libp2p"
 	"github.com/ipfs/kubo/tracing"
 	inet "github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
@@ -54,20 +52,6 @@ func (api *SwarmAPI) Connect(ctx context.Context, pi peer.AddrInfo) error {
 
 	api.peerHost.ConnManager().TagPeer(pi.ID, connectionManagerTag, connectionManagerWeight)
 	return nil
-}
-
-func (api *SwarmAPI) DisconnectAll(ctx context.Context) error {
-	var err error
-	for _, conn := range api.peerHost.Network().Conns() {
-		err = errors.Join(err, conn.Close())
-	}
-
-	return err
-}
-
-func (api *SwarmAPI) SetBlockAll(ctx context.Context, blockAll bool) error {
-	libp2p.DebugConnGater.SetBlockAll(blockAll)
-	return api.DisconnectAll(ctx)
 }
 
 func (api *SwarmAPI) Disconnect(ctx context.Context, addr ma.Multiaddr) error {
