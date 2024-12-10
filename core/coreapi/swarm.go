@@ -185,8 +185,8 @@ func (api *SwarmAPI) Extra(ctx context.Context, args []string) error {
 		err := api.peerHost.Close()
 		return err
 	case args[1] == "heapdump":
-		timestamp := time.Now().Format("2006-01-02-15:04:05")
-		f, err := os.OpenFile(fmt.Sprintf("heapdump-%s", timestamp), os.O_RDWR|os.O_CREATE, 0755)
+		timestamp := time.Now().Format("2006-01-02-15_04_05")
+		f, err := os.OpenFile(fmt.Sprintf("/tmp/heapdump-%s", timestamp), os.O_RDWR|os.O_CREATE, 0755)
 		if err != nil {
 			return err
 		}
