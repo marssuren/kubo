@@ -149,6 +149,7 @@ func (p *profiler) runProfile(ctx context.Context) error {
 
 	results := make(chan profileResult, len(p.opts.Collectors))
 	wg := sync.WaitGroup{}
+	runtime.GC()
 	for _, c := range collectorsToRun {
 		if !c.enabledFunc(p.opts) {
 			continue
