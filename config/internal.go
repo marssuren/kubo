@@ -15,4 +15,5 @@ type InternalBitswap struct {
 	MaxOutstandingBytesPerPeer  OptionalInteger
 	ProviderSearchDelay         OptionalDuration
 	WantHaveReplaceSize         OptionalInteger
+	DisableServer               Flag
 }

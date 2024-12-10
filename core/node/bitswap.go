@@ -2,11 +2,13 @@ package node
 
 import (
 	"context"
+	"github.com/ipfs/go-metrics-interface"
 	"time"
 
 	"github.com/ipfs/boxo/bitswap"
 	"github.com/ipfs/boxo/bitswap/client"
 	"github.com/ipfs/boxo/bitswap/network"
+	"github.com/ipfs/boxo/bitswap/server"
 	blockstore "github.com/ipfs/boxo/blockstore"
 	exchange "github.com/ipfs/boxo/exchange"
 	"github.com/ipfs/boxo/exchange/providing"
@@ -32,7 +34,8 @@ const (
 type bitswapOptionsOut struct {
 	fx.Out
 
-	BitswapOpts []bitswap.Option `group:"bitswap-options,flatten"`
+	BitswapClientOpts []client.Option `group:"bitswap-client-options,flatten"`
+	BitswapServerOpts []server.Option `group:"bitswap-server-options,flatten"`
 }
 
 // BitswapOptions creates configuration options for Bitswap from the config file
@@ -44,27 +47,31 @@ func BitswapOptions(cfg *config.Config) interface{} {
 			internalBsCfg = *cfg.Internal.Bitswap
 		}
 
-		opts := []bitswap.Option{
-			bitswap.ProviderSearchDelay(internalBsCfg.ProviderSearchDelay.WithDefault(DefaultProviderSearchDelay)), // See https://github.com/ipfs/go-ipfs/issues/8807 for rationale
-			bitswap.EngineBlockstoreWorkerCount(int(internalBsCfg.EngineBlockstoreWorkerCount.WithDefault(DefaultEngineBlockstoreWorkerCount))),
-			bitswap.TaskWorkerCount(int(internalBsCfg.TaskWorkerCount.WithDefault(DefaultTaskWorkerCount))),
-			bitswap.EngineTaskWorkerCount(int(internalBsCfg.EngineTaskWorkerCount.WithDefault(DefaultEngineTaskWorkerCount))),
-			bitswap.MaxOutstandingBytesPerPeer(int(internalBsCfg.MaxOutstandingBytesPerPeer.WithDefault(DefaultMaxOutstandingBytesPerPeer))),
-			bitswap.WithWantHaveReplaceSize(int(internalBsCfg.WantHaveReplaceSize.WithDefault(DefaultWantHaveReplaceSize))),
+		clientOpts := []client.Option{
+			client.ProviderSearchDelay(internalBsCfg.ProviderSearchDelay.WithDefault(DefaultProviderSearchDelay)), // See https://github.com/ipfs/go-ipfs/issues/8807 for rationale
 		}
 
-		return bitswapOptionsOut{BitswapOpts: opts}
+		serverOpts := []server.Option{
+			server.EngineBlockstoreWorkerCount(int(internalBsCfg.EngineBlockstoreWorkerCount.WithDefault(DefaultEngineBlockstoreWorkerCount))),
+			server.TaskWorkerCount(int(internalBsCfg.TaskWorkerCount.WithDefault(DefaultTaskWorkerCount))),
+			server.EngineTaskWorkerCount(int(internalBsCfg.EngineTaskWorkerCount.WithDefault(DefaultEngineTaskWorkerCount))),
+			server.MaxOutstandingBytesPerPeer(int(internalBsCfg.MaxOutstandingBytesPerPeer.WithDefault(DefaultMaxOutstandingBytesPerPeer))),
+			server.WithWantHaveReplaceSize(int(internalBsCfg.WantHaveReplaceSize.WithDefault(DefaultWantHaveReplaceSize))),
+		}
+
+		return bitswapOptionsOut{BitswapClientOpts: clientOpts, BitswapServerOpts: serverOpts}
 	}
 }
 
 type bitswapIn struct {
 	fx.In
 
-	Mctx        helpers.MetricsCtx
-	Host        host.Host
-	Rt          irouting.ProvideManyRouter
-	Bs          blockstore.GCBlockstore
-	BitswapOpts []bitswap.Option `group:"bitswap-options"`
+	Mctx              helpers.MetricsCtx
+	Host              host.Host
+	Rt                irouting.ProvideManyRouter
+	Bs                blockstore.GCBlockstore
+	BitswapClientOpts []client.Option `group:"bitswap-client-options"`
+	BitswapServerOpts []server.Option `group:"bitswap-server-options"`
 }
 
 // Bitswap creates the BitSwap server/client instance.
@@ -78,7 +85,15 @@ func Bitswap(provide bool) interface{} {
 		if provide {
 			provider = in.Rt
 		}
-		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, provider, in.Bs, in.BitswapOpts...)
+
+		var bsOpts []bitswap.Option
+		for _, opt := range in.BitswapClientOpts {
+			bsOpts = append(bsOpts, bitswap.WithClientOption(opt))
+		}
+		for _, opt := range in.BitswapServerOpts {
+			bsOpts = append(bsOpts, bitswap.WithServerOption(opt))
+		}
+		bs := bitswap.New(helpers.LifecycleCtx(in.Mctx, lc), bitswapNetwork, provider, in.Bs, bsOpts...)
 
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
@@ -92,6 +107,46 @@ func Bitswap(provide bool) interface{} {
 // OnlineExchange creates new LibP2P backed block exchange.
 func OnlineExchange() interface{} {
 	return func(in *bitswap.Bitswap, lc fx.Lifecycle) exchange.Interface {
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				return in.Close()
+			},
+		})
+		return in
+	}
+}
+
+// Bitswap creates the BitSwap server/client instance.
+// Additional options to bitswap.New can be provided via the "bitswap-options"
+// group.
+func BitswapClientOnly(provide bool) interface{} {
+	return func(in bitswapIn, lc fx.Lifecycle) *client.Client {
+		bitswapNetwork := network.NewFromIpfsHost(in.Host)
+
+		var provider client.ProviderFinder
+		if provide {
+			provider = in.Rt
+		}
+
+		ctx := helpers.LifecycleCtx(in.Mctx, lc)
+		ctx = metrics.CtxSubScope(ctx, "bitswap")
+		bs := client.New(ctx, bitswapNetwork, provider, in.Bs, in.BitswapClientOpts...)
+		bitswapNetwork.Start(bs) // use the polyfill receiver to log received errors and trace messages only once
+
+		lc.Append(fx.Hook{
+			OnStop: func(ctx context.Context) error {
+				bitswapNetwork.Stop()
+				return bs.Close()
+			},
+		})
+
+		return bs
+	}
+}
+
+// OnlineExchange creates new LibP2P backed block exchange.
+func OnlineExchangeClientOnly() interface{} {
+	return func(in *client.Client, lc fx.Lifecycle) exchange.Interface {
 		lc.Append(fx.Hook{
 			OnStop: func(ctx context.Context) error {
 				return in.Close()
