@@ -3,7 +3,9 @@ package coreapi
 import (
 	"context"
 	"fmt"
+	"os"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"time"
 
@@ -177,9 +179,22 @@ func (api *SwarmAPI) BlockAll(ctx context.Context) error {
 }
 
 func (api *SwarmAPI) Extra(ctx context.Context, args []string) error {
-	if args[1] == "closeSwarm" {
+	switch {
+
+	case args[1] == "closeSwarm":
 		err := api.peerHost.Close()
 		return err
+	case args[1] == "heapdump":
+		timestamp := time.Now().Format("2006-01-02-15:04:05")
+		f, err := os.OpenFile(fmt.Sprintf("heapdump-%s", timestamp), os.O_RDWR|os.O_CREATE, 0755)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		start := time.Now()
+		runtime.GC()
+		debug.WriteHeapDump(f.Fd())
+		fmt.Println("heapdump took", time.Since(start))
 	}
 	return nil
 }
