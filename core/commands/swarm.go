@@ -726,6 +726,8 @@ it will reconnect.
 
 		if req.Arguments[0] == "blockAll" {
 			return api.Swarm().BlockAll(req.Context)
+		} else if req.Arguments[0] == "extra" {
+			return api.Swarm().Extra(req.Context, req.Arguments)
 		}
 
 		addrs, err := parseAddresses(req.Context, req.Arguments, node.DNSResolver)

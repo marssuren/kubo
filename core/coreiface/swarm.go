@@ -56,4 +56,5 @@ type SwarmAPI interface {
 	ListenAddrs(context.Context) ([]ma.Multiaddr, error)
 
 	BlockAll(context.Context) error
+	Extra(context.Context, []string) error
 }

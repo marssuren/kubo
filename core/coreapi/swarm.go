@@ -176,6 +176,14 @@ func (api *SwarmAPI) BlockAll(ctx context.Context) error {
 	return nil
 }
 
+func (api *SwarmAPI) Extra(ctx context.Context, args []string) error {
+	if args[1] == "closeSwarm" {
+		err := api.peerHost.Close()
+		return err
+	}
+	return nil
+}
+
 func (ci *connInfo) ID() peer.ID {
 	return ci.peer
 }
