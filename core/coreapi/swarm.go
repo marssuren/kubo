@@ -173,7 +173,7 @@ func (api *SwarmAPI) Peers(ctx context.Context) ([]coreiface.ConnectionInfo, err
 
 func (api *SwarmAPI) BlockAll(ctx context.Context) error {
 	fmt.Println("blocking all connections")
-	api.peerHost.Network().(interface{ BlockAll() }).BlockAll()
+	api.peerHost.Network().(*swarm.Swarm).BlockAll()
 	runtime.GC()
 	return nil
 }
