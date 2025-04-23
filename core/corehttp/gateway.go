@@ -17,6 +17,7 @@ import (
 	"github.com/ipfs/boxo/path"
 	offlineroute "github.com/ipfs/boxo/routing/offline"
 	"github.com/ipfs/go-cid"
+	logging "github.com/ipfs/go-log"
 	version "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/config"
 	"github.com/ipfs/kubo/core"
@@ -188,7 +189,8 @@ func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path path.Immutab
 }
 
 func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
-	fmt.Printf("[DEBUG] Gateway 正在拉取 CID %s 对应的块\n", path.String())
+	var log = logging.Logger("gateway")
+	log.Debugf("Gateway 正在拉取 CID %s 对应的块", path.String())
 	md, n, err := o.gwimpl.GetBlock(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
