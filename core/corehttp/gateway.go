@@ -172,6 +172,7 @@ type offlineGatewayErrWrapper struct {
 }
 
 func offlineErrWrap(err error) error {
+	fmt.Println("进入offlineErrWrap")
 	if errors.Is(err, iface.ErrOffline) {
 		return fmt.Errorf("%s : %w", err.Error(), gateway.ErrServiceUnavailable)
 	}
@@ -179,6 +180,7 @@ func offlineErrWrap(err error) error {
 }
 
 func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path path.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.Get")
 	log := logging.Logger("gateway")
 	log.Debugf("offlineGatewayErrWrapper.Get called path=%s ranges=%v", path.String(), ranges)
 	// optionally print stack trace for deeper insight
@@ -189,6 +191,7 @@ func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path path.ImmutableP
 }
 
 func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.GetAll")
 	log := logging.Logger("gateway")
 	log.Debugf("offlineGatewayErrWrapper.GetAll called path=%s", path.String())
 	md, n, err := o.gwimpl.GetAll(ctx, path)
@@ -197,6 +200,7 @@ func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path path.Immutab
 }
 
 func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.GetBlock")
 	log := logging.Logger("gateway")
 	log.Debugf("offlineGatewayErrWrapper.GetBlock called path=%s", path.String())
 	log.Debugf("stack trace:\n%s", debug.Stack())
@@ -206,6 +210,7 @@ func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path path.Immut
 }
 
 func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, *gateway.HeadResponse, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.Head")
 	log := logging.Logger("gateway")
 	log.Debugf("offlineGatewayErrWrapper.Head called path=%s", path.String())
 	md, n, err := o.gwimpl.Head(ctx, path)
@@ -214,6 +219,7 @@ func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path path.Immutable
 }
 
 func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.ResolvePath")
 	log := logging.Logger("gateway")
 	log.Debugf("offlineGatewayErrWrapper.ResolvePath called path=%s", path.String())
 	md, err := o.gwimpl.ResolvePath(ctx, path)
@@ -222,6 +228,7 @@ func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path path.Im
 }
 
 func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path path.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.GetCAR")
 	log := logging.Logger("gateway")
 	log.Debugf("offlineGatewayErrWrapper.GetCAR called path=%s params=%+v", path.String(), params)
 	md, data, err := o.gwimpl.GetCAR(ctx, path, params)
@@ -230,22 +237,26 @@ func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path path.Immutab
 }
 
 func (o *offlineGatewayErrWrapper) IsCached(ctx context.Context, path path.Path) bool {
+	fmt.Println("进入offlineGatewayErrWrapper.IsCached")
 	return o.gwimpl.IsCached(ctx, path)
 }
 
 func (o *offlineGatewayErrWrapper) GetIPNSRecord(ctx context.Context, c cid.Cid) ([]byte, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.GetIPNSRecord")
 	rec, err := o.gwimpl.GetIPNSRecord(ctx, c)
 	err = offlineErrWrap(err)
 	return rec, err
 }
 
 func (o *offlineGatewayErrWrapper) ResolveMutable(ctx context.Context, path path.Path) (path.ImmutablePath, time.Duration, time.Time, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.ResolveMutable")
 	imPath, ttl, lastMod, err := o.gwimpl.ResolveMutable(ctx, path)
 	err = offlineErrWrap(err)
 	return imPath, ttl, lastMod, err
 }
 
 func (o *offlineGatewayErrWrapper) GetDNSLinkRecord(ctx context.Context, s string) (path.Path, error) {
+	fmt.Println("进入offlineGatewayErrWrapper.GetDNSLinkRecord")
 	p, err := o.gwimpl.GetDNSLinkRecord(ctx, s)
 	err = offlineErrWrap(err)
 	return p, err
