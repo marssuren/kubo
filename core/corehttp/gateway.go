@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"runtime/debug"
+
 	"github.com/ipfs/boxo/blockservice"
 	"github.com/ipfs/boxo/exchange/offline"
 	"github.com/ipfs/boxo/files"
@@ -177,38 +179,51 @@ func offlineErrWrap(err error) error {
 }
 
 func (o *offlineGatewayErrWrapper) Get(ctx context.Context, path path.ImmutablePath, ranges ...gateway.ByteRange) (gateway.ContentPathMetadata, *gateway.GetResponse, error) {
+	log := logging.Logger("gateway")
+	log.Debugf("offlineGatewayErrWrapper.Get called path=%s ranges=%v", path.String(), ranges)
+	// optionally print stack trace for deeper insight
+	log.Debugf("stack trace:\n%s", debug.Stack())
 	md, n, err := o.gwimpl.Get(ctx, path, ranges...)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
 func (o *offlineGatewayErrWrapper) GetAll(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.Node, error) {
+	log := logging.Logger("gateway")
+	log.Debugf("offlineGatewayErrWrapper.GetAll called path=%s", path.String())
 	md, n, err := o.gwimpl.GetAll(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
 func (o *offlineGatewayErrWrapper) GetBlock(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, files.File, error) {
-	var log = logging.Logger("gateway")
-	log.Debugf("Gateway 正在拉取 CID %s 对应的块", path.String())
+	log := logging.Logger("gateway")
+	log.Debugf("offlineGatewayErrWrapper.GetBlock called path=%s", path.String())
+	log.Debugf("stack trace:\n%s", debug.Stack())
 	md, n, err := o.gwimpl.GetBlock(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
 func (o *offlineGatewayErrWrapper) Head(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, *gateway.HeadResponse, error) {
+	log := logging.Logger("gateway")
+	log.Debugf("offlineGatewayErrWrapper.Head called path=%s", path.String())
 	md, n, err := o.gwimpl.Head(ctx, path)
 	err = offlineErrWrap(err)
 	return md, n, err
 }
 
 func (o *offlineGatewayErrWrapper) ResolvePath(ctx context.Context, path path.ImmutablePath) (gateway.ContentPathMetadata, error) {
+	log := logging.Logger("gateway")
+	log.Debugf("offlineGatewayErrWrapper.ResolvePath called path=%s", path.String())
 	md, err := o.gwimpl.ResolvePath(ctx, path)
 	err = offlineErrWrap(err)
 	return md, err
 }
 
 func (o *offlineGatewayErrWrapper) GetCAR(ctx context.Context, path path.ImmutablePath, params gateway.CarParams) (gateway.ContentPathMetadata, io.ReadCloser, error) {
+	log := logging.Logger("gateway")
+	log.Debugf("offlineGatewayErrWrapper.GetCAR called path=%s params=%+v", path.String(), params)
 	md, data, err := o.gwimpl.GetCAR(ctx, path, params)
 	err = offlineErrWrap(err)
 	return md, data, err
